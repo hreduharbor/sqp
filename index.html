@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduHarbor Science Quiz - Season 3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .timer-pulse {
+      animation: pulse 1s ease-in-out infinite;
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="w-full h-full overflow-auto" style="background: linear-gradient(135deg, #e0e7ff 0%, #f0f9ff 50%, #e0f2fe 100%); min-height: 100%;"><!-- Toast Notification -->
+   <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+    <div class="glass-card rounded-lg shadow-xl px-6 py-4 max-w-sm">
+     <p id="toast-message" class="text-sm font-medium text-gray-800"></p>
+    </div>
+   </div><!-- Timer Display (Hidden initially) -->
+   <div id="timer-display" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-40 hidden">
+    <div class="gradient-bg rounded-full shadow-2xl px-8 py-4">
+     <div class="flex items-center gap-3"><span class="text-white text-sm font-semibold">Time Remaining:</span> <span id="timer-text" class="text-white text-2xl font-bold timer-pulse">10:00</span>
+     </div>
+    </div>
+   </div><!-- Warning Modal (30 seconds) -->
+   <div id="warning-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 fade-in">
+     <div class="text-center">
+      <div class="text-6xl mb-4">
+       ⏳
+      </div>
+      <h3 class="text-2xl font-bold text-orange-600 mb-3">Only 30 Seconds Remaining!</h3>
+      <p class="text-gray-700 mb-6">Please submit your exam now to avoid disqualification.</p><button id="warning-close" class="gradient-bg text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"> I Understand </button>
+     </div>
+    </div>
+   </div><!-- Time Over Modal -->
+   <div id="timeover-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 fade-in">
+     <div class="text-center">
+      <div class="text-6xl mb-4">
+       ⏰
+      </div>
+      <h3 class="text-3xl font-bold text-red-600 mb-3">Time Over!</h3>
+      <p class="text-gray-700 mb-2">Your exam session has ended.</p>
+      <p class="text-gray-600 text-sm" id="thank-you-text">Thank you for being a part of EduHarbor Science Quiz – Season 3.</p>
+     </div>
+    </div>
+   </div><!-- Success Modal -->
+   <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg mx-4 fade-in">
+     <div class="text-center">
+      <div class="text-6xl mb-4">
+       ✅
+      </div>
+      <h3 class="text-3xl font-bold text-green-600 mb-3">Exam Submitted Successfully!</h3>
+      <p class="text-gray-700 mb-8">Your response has been recorded.</p>
+      <div class="glass-card rounded-xl p-6 mb-6">
+       <div class="text-4xl mb-3">
+        💬
+       </div>
+       <h4 class="text-xl font-bold text-gray-800 mb-2">We would love to hear from you!</h4>
+       <p class="text-gray-600 mb-4">Share your experience and help us improve.</p><a id="facebook-link" href="https://www.facebook.com/eduharbor" target="_blank" rel="noopener noreferrer" class="gradient-bg text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2 hover:opacity-90 transition-opacity"> ⭐ Give Your Review on Facebook </a>
+      </div>
+     </div>
+    </div>
+   </div><!-- Main Content -->
+   <div class="max-w-4xl mx-auto px-4 py-8"><!-- Header -->
+    <header class="text-center mb-8 fade-in">
+     <h1 id="exam-title" class="text-4xl md:text-5xl font-bold gradient-text mb-3">🔬 EduHarbor Science Quiz – Season 3</h1>
+     <p id="exam-subtitle" class="text-gray-600 text-lg mb-4">Official &amp; Secure Online Examination Portal</p>
+     <div class="w-32 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 mx-auto rounded-full"></div>
+    </header><!-- Welcome Message -->
+    <div id="welcome-section" class="mb-8 fade-in">
+     <div class="glass-card rounded-2xl shadow-xl p-8">
+      <p id="welcome-message" class="text-xl text-center text-gray-800 font-medium">👋 Welcome, Dear Participant!<br>
+       Please read all instructions carefully before starting the exam.</p>
+     </div>
+    </div><!-- Instructions Card -->
+    <div id="instructions-section" class="mb-8 fade-in">
+     <div class="glass-card rounded-2xl shadow-xl p-8">
+      <h2 class="text-2xl font-bold gradient-text mb-6 text-center">📋 Exam Instructions</h2>
+      <ul class="space-y-4 text-gray-700">
+       <li class="flex items-start gap-3"><span class="text-2xl">⏱</span> <span><strong>Total Exam Duration:</strong> <span id="duration-text">10</span> Minutes</span></li>
+       <li class="flex items-start gap-3"><span class="text-2xl">���</span> <span>Exam will begin only after clicking 'Start Exam'</span></li>
+       <li class="flex items-start gap-3"><span class="text-2xl">🔒</span> <span>One attempt only per browser/device</span></li>
+       <li class="flex items-start gap-3"><span class="text-2xl">🔄</span> <span>Refreshing the page will NOT extend time</span></li>
+       <li class="flex items-start gap-3"><span class="text-2xl">🚫</span> <span>Do not reload, refresh, or leave the page</span></li>
+       <li class="flex items-start gap-3"><span class="text-2xl">📵</span> <span>Screenshots, screen recording, right-click, copy &amp; paste are strictly prohibited</span></li>
+       <li class="flex items-start gap-3"><span class="text-2xl">⛔</span> <span>If time expires, the exam will be automatically closed</span></li>
+       <li class="flex items-start gap-3"><span class="text-2xl">✅</span> <span>Submit before time ends to ensure validity</span></li>
+      </ul>
+     </div>
+    </div><!-- Security Alert -->
+    <div id="security-section" class="mb-8 fade-in">
+     <div class="bg-red-50 border-2 border-red-300 rounded-2xl shadow-lg p-6">
+      <div class="flex items-start gap-4"><span class="text-4xl">⚠️</span>
+       <div>
+        <h3 class="text-xl font-bold text-red-700 mb-2">Security Alert</h3>
+        <p class="text-red-900">Any unfair attempt such as refreshing, leaving the page, or capturing the screen may result in exam cancellation.</p>
+       </div>
+      </div>
+     </div>
+    </div><!-- Auto Start Countdown -->
+    <div id="start-section" class="text-center mb-8 fade-in">
+     <div class="glass-card rounded-2xl shadow-xl p-8 max-w-md mx-auto">
+      <div class="text-6xl mb-4">
+       ⏳
+      </div>
+      <h3 class="text-3xl font-bold gradient-text mb-4">Exam Starting In...</h3>
+      <div class="text-8xl font-bold gradient-text mb-4" id="countdown-display">
+       30
+      </div>
+      <p class="text-gray-600">Please be ready. The exam will start automatically.</p>
+     </div>
+    </div><!-- Exam Form Section (Hidden initially) -->
+    <div id="exam-section" class="hidden fade-in mb-8">
+     <div class="glass-card rounded-2xl shadow-xl p-4">
+      <h2 class="text-2xl font-bold gradient-text mb-6 text-center">Examination Form</h2>
+      <div class="bg-white rounded-xl overflow-hidden" style="height: 800px;"><iframe id="exam-frame" src="" frameborder="0" class="w-full h-full" allow="autoplay"></iframe>
+      </div>
+      <div class="text-center mt-4"><a id="open-form-link" href="" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline font-semibold"> 📝 Open Exam Form in New Tab </a>
+      </div>
+     </div>
+    </div><!-- Development Credits -->
+    <div class="mb-8 fade-in">
+     <div class="glass-card rounded-2xl shadow-xl p-8">
+      <h2 class="text-2xl font-bold gradient-text mb-4 text-center">👨‍💻 Website Development &amp; Technical Team</h2>
+      <p class="text-center text-gray-700 mb-4">Website developed and all technical work completed by:</p>
+      <div class="text-center text-gray-800 space-y-2 mb-4">
+       <p>• Abid Hasan</p>
+       <p>• Anisa Akther</p>
+       <p>• Momit Hasan</p>
+       <p>• Robeul Islam Saimon</p>
+       <p>• Anaf Hasan</p>
+      </div>
+      <p class="text-center text-gray-600 text-sm">With support from other dedicated contributors</p>
+     </div>
+    </div><!-- Helpline Section (Sticky Footer Card) -->
+    <div id="helpline-section" class="mb-8 fade-in">
+     <div class="glass-card rounded-2xl shadow-xl p-8">
+      <h2 class="text-2xl font-bold gradient-text mb-6 text-center">📞 Need Help During Exam?</h2>
+      <div class="space-y-4 text-gray-700">
+       <div class="flex items-center gap-3"><span class="text-2xl">📱</span> <span><strong>Call:</strong> <a id="phone-link" href="tel:01959829484" class="text-indigo-600 hover:underline">01959829484</a></span>
+       </div>
+       <div class="flex items-center gap-3"><span class="text-2xl">💬</span> <span><strong>WhatsApp:</strong> <a id="whatsapp-link" href="https://wa.me/01959829484" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">01959829484</a></span>
+       </div>
+       <div class="flex items-center gap-3"><span class="text-2xl">📧</span> <span><strong>Email:</strong> <a id="email-link" href="mailto:info.eduharbor@gmail.com" class="text-indigo-600 hover:underline">info.eduharbor@gmail.com</a></span>
+       </div>
+      </div>
+      <p class="text-center text-gray-600 mt-6 text-sm">Support is available for any technical issues.</p>
+     </div>
+    </div><!-- Footer -->
+    <footer class="text-center py-6 fade-in">
+     <div class="w-32 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 mx-auto rounded-full mb-4"></div>
+     <p class="text-gray-600">© 2025 EduHarbor | All Rights Reserved</p>
+    </footer>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      exam_title: "🔬 EduHarbor Science Quiz – Season 3",
+      exam_subtitle: "Official & Secure Online Examination Portal",
+      welcome_message: "👋 Welcome, Dear Participant!<br>Please read all instructions carefully before starting the exam.",
+      exam_duration: "10",
+      google_form_url: "https://docs.google.com/forms/d/e/1FAIpQLSfa6V_Vk1sne_185RthDWA3O0N-vRWxt3PU3xKwhE9E3Ujd-w/viewform?usp=header",
+      phone_number: "01959829484",
+      whatsapp_link: "https://wa.me/01959829484",
+      email_address: "info.eduharbor@gmail.com",
+      facebook_link: "https://www.facebook.com/eduharbor",
+      background_color: "#e0e7ff",
+      surface_color: "#ffffff",
+      text_color: "#1f2937",
+      primary_action_color: "#667eea",
+      secondary_action_color: "#764ba2",
+      font_family: "system-ui",
+      font_size: 16
+    };
+
+    let examStartTime = null;
+    let timerInterval = null;
+    let examDurationMs = 0;
+    let hasShownWarning = false;
+
+    const dataHandler = {
+      onDataChanged(data) {
+        if (data.length > 0) {
+          const record = data[0];
+          examStartTime = record.exam_started_at;
+          
+          if (record.exam_completed) {
+            showSuccessModal();
+          } else {
+            continueExam();
+          }
+        }
+      }
+    };
+
+    async function initApp() {
+      if (window.dataSdk) {
+        const initResult = await window.dataSdk.init(dataHandler);
+        if (!initResult.isOk) {
+          showToast("Failed to initialize exam system");
+        }
+      }
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            document.getElementById('exam-title').innerHTML = config.exam_title || defaultConfig.exam_title;
+            document.getElementById('exam-subtitle').textContent = config.exam_subtitle || defaultConfig.exam_subtitle;
+            document.getElementById('welcome-message').innerHTML = config.welcome_message || defaultConfig.welcome_message;
+            document.getElementById('duration-text').textContent = config.exam_duration || defaultConfig.exam_duration;
+            document.getElementById('thank-you-text').textContent = `Thank you for being a part of ${(config.exam_title || defaultConfig.exam_title).replace('🔬 ', '')}.`;
+            
+            const phoneNum = config.phone_number || defaultConfig.phone_number;
+            document.getElementById('phone-link').textContent = phoneNum;
+            document.getElementById('phone-link').href = `tel:${phoneNum}`;
+            
+            const whatsappLink = config.whatsapp_link || defaultConfig.whatsapp_link;
+            document.getElementById('whatsapp-link').href = whatsappLink;
+            
+            const emailAddr = config.email_address || defaultConfig.email_address;
+            document.getElementById('email-link').textContent = emailAddr;
+            document.getElementById('email-link').href = `mailto:${emailAddr}`;
+            
+            document.getElementById('facebook-link').href = config.facebook_link || defaultConfig.facebook_link;
+            
+            const bgColor = config.background_color || defaultConfig.background_color;
+            document.getElementById('app').style.background = `linear-gradient(135deg, ${bgColor} 0%, ${adjustBrightness(bgColor, 10)} 50%, ${adjustBrightness(bgColor, 5)} 100%)`;
+            
+            const customFont = config.font_family || defaultConfig.font_family;
+            const baseFontStack = 'system-ui, -apple-system, sans-serif';
+            document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
+            
+            const baseSize = config.font_size || defaultConfig.font_size;
+            document.getElementById('exam-title').style.fontSize = `${baseSize * 2.5}px`;
+            document.getElementById('exam-subtitle').style.fontSize = `${baseSize * 1.125}px`;
+            document.getElementById('welcome-message').style.fontSize = `${baseSize * 1.25}px`;
+          },
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.background_color || defaultConfig.background_color,
+                set: (value) => {
+                  if (window.elementSdk && window.elementSdk.config) {
+                    window.elementSdk.config.background_color = value;
+                    window.elementSdk.setConfig({ background_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.surface_color || defaultConfig.surface_color,
+                set: (value) => {
+                  if (window.elementSdk && window.elementSdk.config) {
+                    window.elementSdk.config.surface_color = value;
+                    window.elementSdk.setConfig({ surface_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.text_color || defaultConfig.text_color,
+                set: (value) => {
+                  if (window.elementSdk && window.elementSdk.config) {
+                    window.elementSdk.config.text_color = value;
+                    window.elementSdk.setConfig({ text_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.primary_action_color || defaultConfig.primary_action_color,
+                set: (value) => {
+                  if (window.elementSdk && window.elementSdk.config) {
+                    window.elementSdk.config.primary_action_color = value;
+                    window.elementSdk.setConfig({ primary_action_color: value });
+                  }
+                }
+              },
+              {
+                get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+                set: (value) => {
+                  if (window.elementSdk && window.elementSdk.config) {
+                    window.elementSdk.config.secondary_action_color = value;
+                    window.elementSdk.setConfig({ secondary_action_color: value });
+                  }
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => {
+                if (window.elementSdk && window.elementSdk.config) {
+                  window.elementSdk.config.font_family = value;
+                  window.elementSdk.setConfig({ font_family: value });
+                }
+              }
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => {
+                if (window.elementSdk && window.elementSdk.config) {
+                  window.elementSdk.config.font_size = value;
+                  window.elementSdk.setConfig({ font_size: value });
+                }
+              }
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ["exam_title", config.exam_title || defaultConfig.exam_title],
+            ["exam_subtitle", config.exam_subtitle || defaultConfig.exam_subtitle],
+            ["welcome_message", config.welcome_message || defaultConfig.welcome_message],
+            ["exam_duration", config.exam_duration || defaultConfig.exam_duration],
+            ["google_form_url", config.google_form_url || defaultConfig.google_form_url],
+            ["phone_number", config.phone_number || defaultConfig.phone_number],
+            ["whatsapp_link", config.whatsapp_link || defaultConfig.whatsapp_link],
+            ["email_address", config.email_address || defaultConfig.email_address],
+            ["facebook_link", config.facebook_link || defaultConfig.facebook_link]
+          ])
+        });
+      }
+
+      setupEventListeners();
+      implementSecurity();
+    }
+
+    function adjustBrightness(hex, percent) {
+      const num = parseInt(hex.replace("#", ""), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255))
+        .toString(16).slice(1);
+    }
+
+    function setupEventListeners() {
+      document.getElementById('warning-close').addEventListener('click', closeWarningModal);
+      startAutoCountdown();
+    }
+
+    function startAutoCountdown() {
+      let countdown = 30;
+      const countdownDisplay = document.getElementById('countdown-display');
+      
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        countdownDisplay.textContent = countdown;
+        
+        if (countdown <= 0) {
+          clearInterval(countdownInterval);
+          handleStartExam();
+        }
+      }, 1000);
+    }
+
+    async function handleStartExam() {
+      const config = window.elementSdk ? window.elementSdk.config : defaultConfig;
+      examDurationMs = parseInt(config.exam_duration || defaultConfig.exam_duration) * 60 * 1000;
+      
+      const fingerprint = generateFingerprint();
+      const now = Date.now();
+      
+      examStartTime = now;
+      
+      if (window.dataSdk) {
+        const createResult = await window.dataSdk.create({
+          exam_started_at: now,
+          exam_completed: false,
+          browser_fingerprint: fingerprint
+        });
+        
+        if (!createResult.isOk) {
+          showToast("You have already attempted this exam");
+          setTimeout(() => {
+            location.reload();
+          }, 2000);
+          return;
+        }
+      }
+      
+      startExamSession();
+    }
+
+    function startExamSession() {
+      document.getElementById('start-section').classList.add('hidden');
+      document.getElementById('welcome-section').classList.add('hidden');
+      document.getElementById('instructions-section').classList.add('hidden');
+      document.getElementById('security-section').classList.add('hidden');
+      
+      const config = window.elementSdk ? window.elementSdk.config : defaultConfig;
+      const formUrl = config.google_form_url || defaultConfig.google_form_url;
+      document.getElementById('exam-frame').src = formUrl;
+      document.getElementById('open-form-link').href = formUrl;
+      document.getElementById('exam-section').classList.remove('hidden');
+      document.getElementById('timer-display').classList.remove('hidden');
+      
+      startTimer();
+      showToast("Exam started! Good luck!");
+    }
+
+    function continueExam() {
+      const config = window.elementSdk ? window.elementSdk.config : defaultConfig;
+      examDurationMs = parseInt(config.exam_duration || defaultConfig.exam_duration) * 60 * 1000;
+      
+      const elapsed = Date.now() - examStartTime;
+      if (elapsed >= examDurationMs) {
+        endExam();
+      } else {
+        startExamSession();
+      }
+    }
+
+    function startTimer() {
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        updateTimerDisplay();
+        
+        const elapsed = Date.now() - examStartTime;
+        const remaining = examDurationMs - elapsed;
+        
+        if (remaining <= 30000 && !hasShownWarning) {
+          showWarningModal();
+          hasShownWarning = true;
+        }
+        
+        if (remaining <= 0) {
+          endExam();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const elapsed = Date.now() - examStartTime;
+      const remaining = Math.max(0, examDurationMs - elapsed);
+      
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      
+      const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      document.getElementById('timer-text').textContent = timerText;
+      
+      if (remaining <= 30000) {
+        document.getElementById('timer-text').style.color = '#ef4444';
+      }
+    }
+
+    function endExam() {
+      clearInterval(timerInterval);
+      document.getElementById('exam-section').classList.add('hidden');
+      document.getElementById('timer-display').classList.add('hidden');
+      showTimeOverModal();
+    }
+
+    function showWarningModal() {
+      document.getElementById('warning-modal').classList.remove('hidden');
+    }
+
+    function closeWarningModal() {
+      document.getElementById('warning-modal').classList.add('hidden');
+    }
+
+    function showTimeOverModal() {
+      document.getElementById('timeover-modal').classList.remove('hidden');
+    }
+
+    function showSuccessModal() {
+      document.getElementById('success-modal').classList.remove('hidden');
+      document.getElementById('exam-section').classList.add('hidden');
+      document.getElementById('timer-display').classList.add('hidden');
+      document.getElementById('start-section').classList.add('hidden');
+      document.getElementById('welcome-section').classList.add('hidden');
+      document.getElementById('instructions-section').classList.add('hidden');
+      document.getElementById('security-section').classList.add('hidden');
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      toastMessage.textContent = message;
+      toast.classList.remove('hidden');
+      
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    function generateFingerprint() {
+      const nav = navigator;
+      const screen = window.screen;
+      const fingerprint = [
+        nav.userAgent,
+        nav.language,
+        screen.colorDepth,
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset()
+      ].join('|');
+      
+      let hash = 0;
+      for (let i = 0; i < fingerprint.length; i++) {
+        const char = fingerprint.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return hash.toString();
+    }
+
+    function implementSecurity() {
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showToast('Right-click is disabled during the exam');
+      });
+      
+      document.addEventListener('selectstart', (e) => {
+        if (examStartTime && !document.getElementById('exam-section').classList.contains('hidden')) {
+          e.preventDefault();
+        }
+      });
+      
+      document.addEventListener('copy', (e) => {
+        if (examStartTime && !document.getElementById('exam-section').classList.contains('hidden')) {
+          e.preventDefault();
+          showToast('Copy function is disabled during the exam');
+        }
+      });
+      
+      document.addEventListener('keydown', (e) => {
+        if (examStartTime && !document.getElementById('exam-section').classList.contains('hidden')) {
+          if (
+            (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'u' || e.key === 'p')) ||
+            (e.ctrlKey && e.shiftKey && e.key === 'i') ||
+            e.key === 'F12' ||
+            e.key === 'PrintScreen'
+          ) {
+            e.preventDefault();
+            showToast('This action is disabled during the exam');
+          }
+        }
+      });
+      
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && examStartTime && !document.getElementById('exam-section').classList.contains('hidden')) {
+          showToast('Please stay on the exam page');
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b79c82215013a55',t:'MTc2NzM1MTkzMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
